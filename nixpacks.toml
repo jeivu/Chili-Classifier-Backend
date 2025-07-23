@@ -1,5 +1,4 @@
 # nixpacks.toml
-[phases.setup]
-nixPkgs = ["python310", "pip"]
+
 [start]
 cmd = "gunicorn app:app"
