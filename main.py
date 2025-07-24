@@ -8,6 +8,8 @@ import io
 import mysql.connector
 from werkzeug.utils import secure_filename
 from datetime import datetime
+import cloudinary
+import cloudinary.uploader
 
 app = Flask(__name__)
 CORS(app)
@@ -100,69 +102,59 @@ def predict():
 # Ganti endpoint /history POST Anda dengan ini
 @app.route('/history', methods=['POST'])
 def add_history():
-    # 1. Cek data form terlebih dahulu
+    # 1. Cek data form
     print("Menerima permintaan ke /history")
     name = request.form.get('name')
     accuracy = request.form.get('accuracy')
     date_str = request.form.get('date')
 
     if not all([name, accuracy, date_str]):
-        print(f"Error: Data tidak lengkap. Name: {name}, Accuracy: {accuracy}, Date: {date_str}")
         return jsonify({'error': 'Missing form data'}), 400
 
     # 2. Cek file
     if 'image' not in request.files:
-        print("Error: Tidak ada bagian file 'image' dalam permintaan.")
         return jsonify({'error': 'No image uploaded'}), 400
 
     image_file = request.files['image']
     if image_file.filename == '':
-        print("Error: Nama file kosong.")
         return jsonify({'error': 'No selected file'}), 400
 
+    conn = None
     try:
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            
-            # PENTING: Jangan simpan file ke server. Untuk sekarang, kita lewati ini untuk tes database.
-            # Di masa depan, ganti bagian ini untuk upload ke cloud storage.
-            # save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            # print(f"Mencoba menyimpan file ke: {save_path}")
-            # image_file.save(save_path)
-            # print("File berhasil disimpan secara lokal (sementara).")
+        # 3. Upload file ke Cloudinary ☁️
+        print("Mengupload file ke Cloudinary...")
+        upload_result = cloudinary.uploader.upload(image_file)
+        # Dapatkan URL gambar yang aman dari hasil upload
+        image_url = upload_result['secure_url']
+        print(f"File berhasil diupload. URL: {image_url}")
 
-            # 3. Coba koneksi dan simpan ke database
-            print("Mencoba terhubung ke database...")
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            print("Koneksi database berhasil.")
+        # 4. Simpan URL ke database
+        print("Mencoba terhubung ke database...")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        print("Koneksi database berhasil.")
 
-            sql_query = "INSERT INTO history (image, name, accuracy, date) VALUES (%s, %s, %s, %s)"
-            # Gunakan nama file sebagai path gambar, seolah-olah sudah disimpan
-            image_path_in_db = f"/uploads/{filename}" 
-            data_to_insert = (image_path_in_db, name, int(accuracy), date_str)
-            
-            print(f"Menjalankan query: {sql_query} dengan data: {data_to_insert}")
-            cursor.execute(sql_query, data_to_insert)
-            
-            print("Query berhasil dieksekusi. Melakukan commit...")
-            conn.commit()
-            print("Commit berhasil. Data seharusnya sudah tersimpan.")
-            
-            cursor.close()
-            conn.close()
-            
-            return jsonify({'message': 'History added successfully'}), 201
-        else:
-            print(f"Error: Tipe file tidak diizinkan. Nama file: {image_file.filename}")
-            return jsonify({'error': 'Invalid file type'}), 400
-            
+        sql_query = "INSERT INTO history (image, name, accuracy, date) VALUES (%s, %s, %s, %s)"
+        data_to_insert = (image_url, name, int(accuracy), date_str) # Simpan image_url
+
+        print(f"Menjalankan query dengan data: {data_to_insert}")
+        cursor.execute(sql_query, data_to_insert)
+
+        conn.commit()
+        print("Commit berhasil. Data dan URL gambar sudah tersimpan.")
+
+        cursor.close()
+        return jsonify({'message': 'History added successfully', 'image_url': image_url}), 201
+
     except Exception as e:
-        # Ini akan menangkap error apa pun dan menampilkannya di log Railway
         print(f"!!!!!! TERJADI ERROR !!!!!: {e}")
         import traceback
-        traceback.print_exc() # Mencetak detail error lengkap
+        traceback.print_exc()
         return jsonify({'error': 'Terjadi kesalahan di server', 'details': str(e)}), 500
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
+            print("Koneksi database ditutup.")
 
 # Endpoint GET: Ambil semua history
 @app.route('/history', methods=['GET'])
