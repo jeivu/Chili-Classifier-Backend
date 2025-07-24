@@ -32,7 +32,7 @@ model = load_model(MODEL_PATH)
 # Fungsi untuk koneksi ke database MySQL
 def get_db_connection():
     return mysql.connector.connect(
-        host="yamanote.proxy.rlwy.net",
+        host="mysql.railway.internal",
         user="root",
         password="AeQczmDVXPFcdLjnZATpvfmKBNTmvDVY",
         database="cabai_klasifikasi", # Ini akan mengambil 'cabai_klasifikasi'
