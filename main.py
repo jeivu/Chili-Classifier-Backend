@@ -30,10 +30,11 @@ model = load_model(MODEL_PATH)
 # Fungsi untuk koneksi ke database MySQL
 def get_db_connection():
     return mysql.connector.connect(
-        host='localhost',           # Ganti sesuai host MySQL Anda
-        user='root',                # Ganti sesuai user MySQL Anda
-        password='',        # Ganti sesuai password MySQL Anda
-        database='cabai_klasifikasi'    # Ganti sesuai nama database Anda
+        host=os.environ.get('MYSQLHOST'),
+        user=os.environ.get('MYSQLUSER'),
+        password=os.environ.get('MYSQLPASSWORD'),
+        database=os.environ.get('MYSQLDATABASE'), # Ini akan mengambil 'cabai_klasifikasi'
+        port=int(os.environ.get('MYSQLPORT'))
     )
 
 def prepare_image(img, target_size=(256, 256)):
