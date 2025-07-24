@@ -32,11 +32,11 @@ model = load_model(MODEL_PATH)
 # Fungsi untuk koneksi ke database MySQL
 def get_db_connection():
     return mysql.connector.connect(
-        host=os.environ.get('MYSQLHOST'),
-        user=os.environ.get('MYSQLUSER'),
-        password=os.environ.get('MYSQLPASSWORD'),
-        database=os.environ.get('MYSQLDATABASE'), # Ini akan mengambil 'cabai_klasifikasi'
-        port=int(os.environ.get('MYSQLPORT'))
+        host="yamanote.proxy.rlwy.net",
+        user="root",
+        password="AeQczmDVXPFcdLjnZATpvfmKBNTmvDVY",
+        database="cabai_klasifikasi", # Ini akan mengambil 'cabai_klasifikasi'
+        port= 3306
     )
 
 def prepare_image(img, target_size=(256, 256)):
